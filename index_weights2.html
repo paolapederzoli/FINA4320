@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Index Weighting Methods</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stock-inputs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stock-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .stock-card.stock-a { border-color: #4CAF50; }
+        .stock-card.stock-b { border-color: #2196F3; }
+        .stock-card.stock-c { border-color: #FF9800; }
+        
+        .stock-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .results {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .index-result {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .index-result h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .weights-visual {
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .pie-chart {
+            width: 200px;
+            height: 200px;
+            margin-bottom: 15px;
+        }
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 10px;
+        }
+        .legend-color.stock-a { background-color: #4CAF50; }
+        .legend-color.stock-b { background-color: #2196F3; }
+        .legend-color.stock-c { background-color: #FF9800; }
+        
+        .return-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        .return-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .formula {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+        }
+        .formula-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .common-formula {
+            background: #e8f4f8;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 30px;
+            border: 2px solid #1976D2;
+            text-align: center;
+        }
+        .common-formula h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #1976D2;
+            font-size: 20px;
+        }
+        .common-formula {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .common-formula h2 {
+            color: #333;
+            margin-top: 0;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Stock Index Weighting Methods</h1>
+    
+    <div class="container">
+        <h2>Stock Data (Edit to See Changes)</h2>
+        <div class="stock-inputs">
+            <div class="stock-card stock-a">
+                <h3>Stock A</h3>
+                <label>Initial Price ($):</label>
+                <input type="number" id="priceA0" value="100" step="0.01">
+                <label>Final Price ($):</label>
+                <input type="number" id="priceA1" value="110" step="0.01">
+                <label>Shares Outstanding (millions):</label>
+                <input type="number" id="sharesA" value="10" step="0.1">
+                <label>Return:</label>
+                <div id="returnA" style="padding: 8px; background: #e8f5e9; border-radius: 4px; font-weight: bold; margin-top: 5px;"></div>
+            </div>
+            
+            <div class="stock-card stock-b">
+                <h3>Stock B</h3>
+                <label>Initial Price ($):</label>
+                <input type="number" id="priceB0" value="100" step="0.01">
+                <label>Final Price ($):</label>
+                <input type="number" id="priceB1" value="110" step="0.01">
+                <label>Shares Outstanding (millions):</label>
+                <input type="number" id="sharesB" value="10" step="0.1">
+                <label>Return:</label>
+                <div id="returnB" style="padding: 8px; background: #e3f2fd; border-radius: 4px; font-weight: bold; margin-top: 5px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="results" id="results"></div>
+
+    <script>
+        function drawPieChart(canvasId, weights) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 10;
+            
+            const colors = {
+                A: '#4CAF50',
+                B: '#2196F3',
+                C: '#FF9800'
+            };
+            
+            let currentAngle = -Math.PI / 2; // Start at top
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (const [stock, weight] of Object.entries(weights)) {
+                const sliceAngle = 2 * Math.PI * weight;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[stock];
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                currentAngle += sliceAngle;
+            }
+        }
+        
+        function calculate() {
+            // Get input values
+            const data = {
+                A: {
+                    p0: parseFloat(document.getElementById('priceA0').value),
+                    p1: parseFloat(document.getElementById('priceA1').value),
+                    shares: parseFloat(document.getElementById('sharesA').value)
+                },
+                B: {
+                    p0: parseFloat(document.getElementById('priceB0').value),
+                    p1: parseFloat(document.getElementById('priceB1').value),
+                    shares: parseFloat(document.getElementById('sharesB').value)
+                }
+            };
+            
+            // Calculate individual returns
+            const returns = {
+                A: (data.A.p1 - data.A.p0) / data.A.p0,
+                B: (data.B.p1 - data.B.p0) / data.B.p0
+            };
+            
+            // Update return displays
+            document.getElementById('returnA').textContent = `${(returns.A * 100).toFixed(2)}%`;
+            document.getElementById('returnB').textContent = `${(returns.B * 100).toFixed(2)}%`;
+            
+            // Price-Weighted Index
+            const priceSum0 = data.A.p0 + data.B.p0;
+            const priceSum1 = data.A.p1 + data.B.p1;
+            const priceWeights = {
+                A: data.A.p0 / priceSum0,
+                B: data.B.p0 / priceSum0
+            };
+            const priceReturn = (priceSum1 - priceSum0) / priceSum0;
+            
+            // Market-Cap Weighted Index
+            const mcap0 = {
+                A: data.A.p0 * data.A.shares,
+                B: data.B.p0 * data.B.shares
+            };
+            const totalMcap0 = mcap0.A + mcap0.B;
+            const marketWeights = {
+                A: mcap0.A / totalMcap0,
+                B: mcap0.B / totalMcap0
+            };
+            const marketReturn = marketWeights.A * returns.A + marketWeights.B * returns.B;
+            
+            // Equally Weighted Index
+            const equalWeights = { A: 1/2, B: 1/2 };
+            const equalReturn = (returns.A + returns.B) / 2;
+            
+            // Display results
+            const resultsHTML = `
+                <div class="index-result">
+                    <h2>Price-Weighted Index</h2>
+                    <div class="weights-visual">
+                        <canvas id="pricePie" class="pie-chart" width="200" height="200"></canvas>
+                        <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-color stock-a"></div>
+                                <span>Stock A: ${(priceWeights.A * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color stock-b"></div>
+                                <span>Stock B: ${(priceWeights.B * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="formula">
+                        <div class="formula-title">Weight Formula:</div>
+                        $$w_i = \\frac{P_i}{\\sum_{j} P_j}$$
+                        <div style="margin-top: 8px; color: #555; font-size: 12px;">
+                            where \\(w_i\\) is the weight and \\(P_i\\) is the price
+                        </div>
+                    </div>
+                    <div class="formula" style="margin-top: 10px;">
+                        <div class="formula-title">Portfolio Return Formula:</div>
+                        $$R = \\sum_{i=1}^{N} w_i \\times r_i$$
+                    </div>
+                    <div class="return-box">
+                        <div>Index Return</div>
+                        <div class="return-value">${(priceReturn * 100).toFixed(2)}%</div>
+                    </div>
+                </div>
+                
+                <div class="index-result">
+                    <h2>Market-Cap Weighted Index</h2>
+                    <div class="weights-visual">
+                        <canvas id="marketPie" class="pie-chart" width="200" height="200"></canvas>
+                        <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-color stock-a"></div>
+                                <span>Stock A: ${(marketWeights.A * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color stock-b"></div>
+                                <span>Stock B: ${(marketWeights.B * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="formula">
+                        <div class="formula-title">Weight Formula:</div>
+                        $$w_i = \\frac{P_i \\times S_i}{\\sum_{j} (P_j \\times S_j)}$$
+                        <div style="margin-top: 8px; color: #555; font-size: 12px;">
+                            where \\(w_i\\) is the weight, \\(P_i\\) is the price, and \\(S_i\\) is shares outstanding
+                        </div>
+                    </div>
+                    <div class="formula" style="margin-top: 10px;">
+                        <div class="formula-title">Portfolio Return Formula:</div>
+                        $$R = \\sum_{i=1}^{N} w_i \\times r_i$$
+                    </div>
+                    <div class="return-box">
+                        <div>Index Return</div>
+                        <div class="return-value">${(marketReturn * 100).toFixed(2)}%</div>
+                    </div>
+                </div>
+                
+                <div class="index-result">
+                    <h2>Equally Weighted Index</h2>
+                    <div class="weights-visual">
+                        <canvas id="equalPie" class="pie-chart" width="200" height="200"></canvas>
+                        <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-color stock-a"></div>
+                                <span>Stock A: ${(equalWeights.A * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color stock-b"></div>
+                                <span>Stock B: ${(equalWeights.B * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="formula">
+                        <div class="formula-title">Weight Formula:</div>
+                        $$w_i = \\frac{1}{N} \\quad \\text{where } N = 2$$
+                        <div style="margin-top: 8px; color: #555; font-size: 12px;">
+                            where \\(w_i\\) is the weight and \\(N\\) is the number of stocks
+                        </div>
+                    </div>
+                    <div class="formula" style="margin-top: 10px;">
+                        <div class="formula-title">Portfolio Return Formula:</div>
+                        $$R = \\sum_{i=1}^{N} w_i \\times r_i$$
+                    </div>
+                    <div class="return-box">
+                        <div>Index Return</div>
+                        <div class="return-value">${(equalReturn * 100).toFixed(2)}%</div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('results').innerHTML = resultsHTML;
+            
+            // Draw pie charts after DOM update
+            setTimeout(() => {
+                drawPieChart('pricePie', priceWeights);
+                drawPieChart('marketPie', marketWeights);
+                drawPieChart('equalPie', equalWeights);
+                
+                // Typeset math formulas
+                if (window.MathJax) {
+                    MathJax.typesetPromise();
+                }
+            }, 0);
+        }
+        
+        // Add event listeners to all inputs
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', calculate);
+        });
+        
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>
