@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Profit & Payoff Calculator</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .input-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #1976D2;
+        }
+        .input-card h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 16px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+        .output-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .result-card {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .result-card h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #333;
+            border-bottom: 2px solid #1976D2;
+            padding-bottom: 10px;
+        }
+        .formula-box {
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border: 1px solid #dee2e6;
+        }
+        .formula-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .value-display {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .value-label {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .value-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .profit-positive {
+            color: #4CAF50;
+        }
+        .profit-negative {
+            color: #f44336;
+        }
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin-top: 20px;
+        }
+        .parameters-box {
+            background: #fff3cd;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            border-left: 4px solid #ffc107;
+        }
+        .parameters-box strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>Options Profit & Payoff Calculator</h1>
+    
+    <div class="container">
+        <h2 style="margin-top: 0;">Input Parameters</h2>
+        <div class="input-section">
+            <div class="input-card">
+                <h3>Stock Information</h3>
+                <label>Initial Stock Price (S₀):</label>
+                <input type="number" id="initialPrice" value="100" disabled>
+                <label>Stock Price at Maturity (Sᴛ):</label>
+                <input type="number" id="finalPrice" value="110" step="0.01" min="0">
+            </div>
+            
+            <div class="input-card">
+                <h3>Option Specifications</h3>
+                <label>Option Type:</label>
+                <select id="optionType">
+                    <option value="call">Call Option</option>
+                    <option value="put">Put Option</option>
+                </select>
+                <label>Strike Price (K):</label>
+                <input type="number" id="strike" value="100" step="0.01" min="0">
+            </div>
+            
+            <div class="input-card">
+                <h3>Time Parameters</h3>
+                <label>Time to Maturity (days):</label>
+                <input type="number" id="maturity" value="180" step="1" min="1">
+                <label>Time to Maturity (years):</label>
+                <input type="number" id="maturityYears" disabled>
+            </div>
+        </div>
+        
+        <div class="value-display" style="margin-top: 20px;">
+            <div class="value-label">Option Price (Black-Scholes with \(\sigma=0.2\) and \(r_f=3.5\%\))</div>
+            <div class="value-number" id="optionPrice">$0.00</div>
+        </div>
+    </div>
+
+    <div class="output-section">
+        <div class="result-card">
+            <h2>Calculations & Formulas</h2>
+            
+            <div class="formula-box">
+                <div class="formula-title">Option Payoff at Maturity:</div>
+                <div id="payoffFormula"></div>
+            </div>
+            
+            <div class="value-display">
+                <div class="value-label">Payoff at Maturity</div>
+                <div class="value-number" id="payoffValue">$0.00</div>
+            </div>
+            
+            <div class="formula-box">
+                <div class="formula-title">Profit Calculation:</div>
+                $$\text{Profit} = \text{Payoff} - \text{Option Price}$$
+            </div>
+            
+            <div class="value-display">
+                <div class="value-label">Profit/Loss</div>
+                <div class="value-number" id="profitValue">$0.00</div>
+            </div>
+        </div>
+        
+        <div class="result-card">
+            <h2>Visual Analysis</h2>
+            <div class="chart-container">
+                <canvas id="payoffChart"></canvas>
+            </div>
+            <div style="background: #f9f9f9; padding: 12px; border-radius: 5px; margin-top: 15px; font-size: 13px; color: #555;">
+                The graph shows how payoff and profit change with the stock price at maturity. 
+                The red dots mark your selected stock price (S<sub>T</sub> = <span id="stValue"></span>).
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Black-Scholes parameters
+        const r = 0.035;  // 3.5% risk-free rate
+        const sigma = 0.2;  // 20% volatility
+        
+        let payoffChart = null;
+        
+        // Cumulative standard normal distribution
+        function normCDF(x) {
+            const t = 1 / (1 + 0.2316419 * Math.abs(x));
+            const d = 0.3989423 * Math.exp(-x * x / 2);
+            const prob = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+            return x > 0 ? 1 - prob : prob;
+        }
+        
+        // Black-Scholes option pricing
+        function blackScholes(S, K, T, r, sigma, optionType) {
+            if (T <= 0) return optionType === 'call' ? Math.max(S - K, 0) : Math.max(K - S, 0);
+            
+            const d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+            const d2 = d1 - sigma * Math.sqrt(T);
+            
+            if (optionType === 'call') {
+                return S * normCDF(d1) - K * Math.exp(-r * T) * normCDF(d2);
+            } else {
+                return K * Math.exp(-r * T) * normCDF(-d2) - S * normCDF(-d1);
+            }
+        }
+        
+        // Calculate payoff
+        function calculatePayoff(finalPrice, strike, optionType) {
+            if (optionType === 'call') {
+                return Math.max(finalPrice - strike, 0);
+            } else {
+                return Math.max(strike - finalPrice, 0);
+            }
+        }
+        
+        // Update formulas
+        function updateFormulas(optionType) {
+            const payoffFormula = document.getElementById('payoffFormula');
+            
+            if (optionType === 'call') {
+                payoffFormula.innerHTML = `$$\\text{Call Payoff} = \\max(S_T - K, 0)$$
+                    <div style="margin-top: 8px; color: #555; font-size: 12px;">
+                        where \\(S_T\\) is stock price at maturity and \\(K\\) is strike price
+                    </div>`;
+            } else {
+                payoffFormula.innerHTML = `$$\\text{Put Payoff} = \\max(K - S_T, 0)$$
+                    <div style="margin-top: 8px; color: #555; font-size: 12px;">
+                        where \\(K\\) is strike price and \\(S_T\\) is stock price at maturity
+                    </div>`;
+            }
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise();
+            }
+        }
+        
+        // Create or update chart
+        function updateChart(optionType, strike, optionPrice, currentST) {
+            const ctx = document.getElementById('payoffChart').getContext('2d');
+            
+            // Update the ST value in the legend
+            document.getElementById('stValue').textContent = '$' + currentST.toFixed(2);
+            
+            // Generate data points
+            const stockPrices = [];
+            const payoffs = [];
+            const profits = [];
+            
+            const minPrice = strike * 0.5;
+            const maxPrice = strike * 1.5;
+            const step = (maxPrice - minPrice) / 100;
+            
+            for (let S = minPrice; S <= maxPrice; S += step) {
+                stockPrices.push(S);
+                const payoff = calculatePayoff(S, strike, optionType);
+                payoffs.push(payoff);
+                profits.push(payoff - optionPrice);
+            }
+            
+            // Calculate current point values
+            const currentPayoff = calculatePayoff(currentST, strike, optionType);
+            const currentProfit = currentPayoff - optionPrice;
+            
+            // Calculate y-axis range for vertical line
+            const minY = Math.min(...profits) - 5;
+            const maxY = Math.max(...payoffs) + 5;
+            
+            if (payoffChart) {
+                payoffChart.destroy();
+            }
+            
+            payoffChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: stockPrices,
+                    datasets: [
+                        {
+                            label: 'Payoff',
+                            data: payoffs,
+                            borderColor: '#2196F3',
+                            borderWidth: 1.5,
+                            tension: 0,
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Profit',
+                            data: profits,
+                            borderColor: '#4CAF50',
+                            borderWidth: 1.5,
+                            tension: 0,
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Final Stock Price',
+                            data: [{x: currentST, y: minY}, {x: currentST, y: maxY}],
+                            borderColor: '#FF5722',
+                            borderWidth: 1.5,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            showLine: true,
+                            fill: false
+                        },
+                        {
+                            label: 'Your Position',
+                            data: [{x: currentST, y: currentPayoff}, {x: currentST, y: currentProfit}],
+                            borderColor: '#FF5722',
+                            backgroundColor: '#FF5722',
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            showLine: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${optionType === 'call' ? 'Call' : 'Put'} Option Diagram`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                },
+                                boxWidth: 15,
+                                boxHeight: 15,
+                                filter: function(item) {
+                                    return item.text !== 'Your Position';
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    if (context[0].dataset.label === 'Your Position') {
+                                        return 'Final Stock Price = $' + context[0].parsed.x.toFixed(2);
+                                    }
+                                    return null;
+                                },
+                                label: function(context) {
+                                    if (context.dataset.label === 'Final Stock Price') {
+                                        return null;
+                                    }
+                                    if (context.dataset.label === 'Payoff' || context.dataset.label === 'Profit') {
+                                        return null;
+                                    }
+                                    if (context.dataset.label === 'Your Position') {
+                                        if (context.dataIndex === 0) {
+                                            return 'Payoff = $' + context.parsed.y.toFixed(2);
+                                        } else {
+                                            return 'Profit = $' + context.parsed.y.toFixed(2);
+                                        }
+                                    }
+                                    return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Stock Price at Maturity (S_T)',
+                                font: {
+                                    size: 13,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Value ($)',
+                                font: {
+                                    size: 13,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Main calculation function
+        function calculate() {
+            const S0 = parseFloat(document.getElementById('initialPrice').value);
+            const ST = parseFloat(document.getElementById('finalPrice').value);
+            const K = parseFloat(document.getElementById('strike').value);
+            const days = parseFloat(document.getElementById('maturity').value);
+            const T = days / 365;
+            const optionType = document.getElementById('optionType').value;
+            
+            // Update maturity in years display
+            document.getElementById('maturityYears').value = T.toFixed(4);
+            
+            // Calculate option price using Black-Scholes
+            const optionPrice = blackScholes(S0, K, T, r, sigma, optionType);
+            
+            // Calculate payoff at maturity
+            const payoff = calculatePayoff(ST, K, optionType);
+            
+            // Calculate profit
+            const profit = payoff - optionPrice;
+            
+            // Update displays
+            document.getElementById('optionPrice').textContent = `$${optionPrice.toFixed(2)}`;
+            document.getElementById('payoffValue').textContent = `$${payoff.toFixed(2)}`;
+            
+            const profitElement = document.getElementById('profitValue');
+            profitElement.textContent = `$${profit.toFixed(2)}`;
+            profitElement.className = 'value-number ' + (profit >= 0 ? 'profit-positive' : 'profit-negative');
+            
+            // Update formulas and chart
+            updateFormulas(optionType);
+            updateChart(optionType, K, optionPrice, ST);
+        }
+        
+        // Add event listeners
+        document.getElementById('finalPrice').addEventListener('input', calculate);
+        document.getElementById('strike').addEventListener('input', calculate);
+        document.getElementById('maturity').addEventListener('input', calculate);
+        document.getElementById('optionType').addEventListener('change', calculate);
+        
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>
